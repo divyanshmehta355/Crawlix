@@ -120,7 +120,8 @@ export class BatchLoopCrawler extends EventEmitter {
     this.emit('progress', this.getProgress());
 
     const bravePath = detectBravePath();
-    const headless = config.headless !== false;
+    const isHeadlessEnv = process.platform === 'linux' && !process.env.DISPLAY;
+    const headless = isHeadlessEnv ? true : config.headless !== false;
     const qualityPriority = config.qualityPriority && config.qualityPriority.length > 0
       ? config.qualityPriority
       : ['1080p', '720p', '480p'];
@@ -130,12 +131,13 @@ export class BatchLoopCrawler extends EventEmitter {
 
     try {
       this.browser = await chromium.launch({
-        executablePath: bravePath,
+        executablePath: bravePath || undefined,
         headless,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
+          '--disable-gpu',
           '--disable-blink-features=AutomationControlled',
         ],
       });

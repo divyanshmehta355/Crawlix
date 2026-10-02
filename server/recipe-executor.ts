@@ -39,7 +39,8 @@ export class RecipeExecutor extends EventEmitter {
     const logs: CrawlLog[] = [];
     const extractedRecords: Record<string, any>[] = [];
     const bravePath = detectBravePath();
-    const headless = options.headless !== false;
+    const isHeadlessEnv = process.platform === 'linux' && !process.env.DISPLAY;
+    const headless = isHeadlessEnv ? true : options.headless !== false;
     const maxPages = options.maxPages || 3;
 
     this.addLog(logs, 'info', `Executing learned recipe: "${recipe.name}" (${recipe.actions.length} steps)`);
@@ -47,9 +48,14 @@ export class RecipeExecutor extends EventEmitter {
 
     try {
       this.browser = await chromium.launch({
-        executablePath: bravePath,
+        executablePath: bravePath || undefined,
         headless,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
       });
 
       this.context = await this.browser.newContext({

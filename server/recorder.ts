@@ -44,9 +44,15 @@ export class TeachingStudio extends EventEmitter {
     this.state.recordedActions.push(initAction);
     this.emit('action', initAction);
 
+    if (process.platform === 'linux' && !process.env.DISPLAY) {
+      throw new Error(
+        'Interactive Teaching Studio requires a desktop screen to display the visible browser. On cloud servers, please use the Autonomous Crawler or Movie Loop Automator.'
+      );
+    }
+
     // Launch visible Brave window for interactive teaching
     this.browser = await chromium.launch({
-      executablePath: bravePath,
+      executablePath: bravePath || undefined,
       headless: false, // Visible so the user can show it what to do!
       args: [
         '--no-sandbox',

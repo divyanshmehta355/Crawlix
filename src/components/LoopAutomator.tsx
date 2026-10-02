@@ -52,7 +52,8 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
   const [qualityOrder, setQualityOrder] = useState('1080p, 720p, 480p');
   const [serverPriority, setServerPriority] = useState('FSLv2, FastServer, Mirror 1');
   const [maxItems, setMaxItems] = useState(0); // 0 = all
-  const [headless, setHeadless] = useState(false); // Default to visible Brave so user sees it in action!
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const [headless, setHeadless] = useState(!isLocal);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);

@@ -55,21 +55,15 @@ export function detectBravePath(): string {
     }
   }
 
-  // 3. Check Playwright's installed browser cache in Linux Docker/Render
+  // 3. Fallback to Playwright's built-in installed Chromium executable
   try {
-    const pwDir = '/ms-playwright';
-    if (fs.existsSync(pwDir)) {
-      const files = fs.readdirSync(pwDir);
-      for (const dir of files) {
-        if (dir.startsWith('chromium')) {
-          const chromePath = path.join(pwDir, dir, 'chrome-linux', 'chrome');
-          if (fs.existsSync(chromePath)) return chromePath;
-        }
-      }
+    const pwPath = chromium.executablePath();
+    if (pwPath && fs.existsSync(pwPath)) {
+      return pwPath;
     }
   } catch {}
 
-  // On Windows, fallback to standard Brave path; on Linux/Mac, return empty to let Playwright resolve
+  // 4. On Windows, fallback to standard Brave path
   if (process.platform === 'win32') {
     return candidates[0] || 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe';
   }
@@ -252,15 +246,19 @@ export class CrawlerEngine extends EventEmitter {
     this.addLog('info', `Initializing Brave Browser from: ${braveExecutable}`);
     this.addLog('info', `Crawl parameters: Max Pages: ${config.maxPages}, Max Depth: ${config.maxDepth}, Concurrency: ${config.concurrency}, Headless: ${config.headless}`);
 
-    // Launch Brave
+    const isHeadlessEnv = process.platform === 'linux' && !process.env.DISPLAY;
+    const isHeadless = isHeadlessEnv ? true : config.headless;
+
+    // Launch Brave / Chromium
     try {
       this.browser = await chromium.launch({
-        executablePath: braveExecutable,
-        headless: config.headless,
+        executablePath: braveExecutable || undefined,
+        headless: isHeadless,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
+          '--disable-gpu',
           '--disable-blink-features=AutomationControlled',
         ],
       });
