@@ -1,0 +1,99 @@
+[
+  {
+    "id": "hn-top-stories",
+    "name": "Hacker News Top Stories & Scores",
+    "description": "Extracts article titles, links, points, and authors from the front page.",
+    "targetUrl": "https://news.ycombinator.com",
+    "domain": "news.ycombinator.com",
+    "actions": [
+      {
+        "id": "act-1",
+        "type": "navigate",
+        "value": "https://news.ycombinator.com",
+        "description": "Navigate to Hacker News",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "act-2",
+        "type": "wait",
+        "selector": ".titleline",
+        "description": "Wait for story rows to load",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "act-3",
+        "type": "extract",
+        "fieldName": "title",
+        "selector": ".titleline > a",
+        "extractType": "list",
+        "description": "Extract list of story headlines",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "act-4",
+        "type": "extract",
+        "fieldName": "score",
+        "selector": ".score",
+        "extractType": "list",
+        "description": "Extract story points",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "act-5",
+        "type": "extract",
+        "fieldName": "author",
+        "selector": ".hnuser",
+        "extractType": "list",
+        "description": "Extract authors",
+        "timestamp": 1790968600152
+      }
+    ],
+    "createdAt": 1790968600152,
+    "updatedAt": 1790968600152,
+    "runCount": 1
+  },
+  {
+    "id": "example-com-recipe",
+    "name": "Example Domain Overview & Link Checker",
+    "description": "Demonstrates headline extraction and more info link clicking.",
+    "targetUrl": "https://example.com",
+    "domain": "example.com",
+    "actions": [
+      {
+        "id": "ex-1",
+        "type": "navigate",
+        "value": "https://example.com",
+        "description": "Open Example Domain",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "ex-2",
+        "type": "extract",
+        "fieldName": "headline",
+        "selector": "h1",
+        "extractType": "text",
+        "description": "Extract page heading",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "ex-3",
+        "type": "extract",
+        "fieldName": "description",
+        "selector": "p",
+        "extractType": "text",
+        "description": "Extract paragraph body",
+        "timestamp": 1790968600152
+      },
+      {
+        "id": "ex-4",
+        "type": "click",
+        "selector": "a[href]",
+        "description": "Click \"More information...\" link",
+        "timestamp": 1790968600152
+      }
+    ],
+    "createdAt": 1790968600152,
+    "updatedAt": 1790968600152,
+    "runCount": 2
+  }
+]
