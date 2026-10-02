@@ -1,0 +1,12 @@
+services:
+  crawlix:
+    build: .
+    container_name: crawlix
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    volumes:
+      - ./server/data:/app/server/data
