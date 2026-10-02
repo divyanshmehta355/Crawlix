@@ -3,9 +3,12 @@ FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 # Set working directory
 WORKDIR /app
 
-# Install dependencies first for Docker layer caching
+# Copy package files
 COPY package*.json ./
-RUN npm ci
+
+# Install dependencies including Linux native binaries
+RUN npm install --include=optional
+RUN npm install @rolldown/binding-linux-x64-gnu || true
 RUN npx playwright install chromium
 
 # Copy project source
