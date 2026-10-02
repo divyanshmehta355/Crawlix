@@ -138,7 +138,11 @@ export class BatchLoopCrawler extends EventEmitter {
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-gpu',
+          '--disable-background-networking',
+          '--disable-breakpad',
+          '--disable-extensions',
           '--disable-blink-features=AutomationControlled',
+          '--js-flags=--max-old-space-size=256',
         ],
       });
 
@@ -146,6 +150,24 @@ export class BatchLoopCrawler extends EventEmitter {
         viewport: { width: 1280, height: 800 },
         userAgent:
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Brave/128.0',
+      });
+
+      // Anti-bot stealth: remove automated flags
+      await this.context.addInitScript(() => {
+        try {
+          Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+          // @ts-ignore
+          window.chrome = { runtime: {} };
+        } catch {}
+      });
+
+      // Conserve memory on cloud hosts (Render 512MB RAM): block heavy media/images/fonts
+      await this.context.route('**/*', (route) => {
+        const type = route.request().resourceType();
+        if (['image', 'media', 'font'].includes(type)) {
+          return route.abort();
+        }
+        return route.continue();
       });
 
       const activeAllowedPages = new Set<Page>();
@@ -176,8 +198,12 @@ export class BatchLoopCrawler extends EventEmitter {
       this.progress.currentStep = `Navigating to catalog: ${config.catalogUrl}`;
       this.emit('progress', this.getProgress());
 
-      await catalogPage.goto(config.catalogUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
-      await catalogPage.waitForTimeout(1000);
+      try {
+        await catalogPage.goto(config.catalogUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      } catch (err: any) {
+        console.log(`[Crawlix] Catalog page initial goto warning: ${err.message}`);
+      }
+      await catalogPage.waitForTimeout(1500);
 
       // Step 2: Query all cards matching selector
       this.progress.currentStep = `Discovering movie/show cards matching "${config.cardSelector}"...`;
