@@ -21,9 +21,6 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
-  "optionalDependencies": {
-    "@rolldown/binding-linux-x64-gnu": "1.2.12"
-  },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/cors": "^2.8.19",

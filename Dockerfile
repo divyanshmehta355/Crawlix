@@ -6,16 +6,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies including Linux native binaries
-RUN npm install --include=optional
-RUN npm install @rolldown/binding-linux-x64-gnu || true
+# Install dependencies and Playwright browser
+RUN npm install
 RUN npx playwright install chromium
 
-# Copy project source
+# Copy project source and pre-built frontend
 COPY . .
 
-# Build the React production bundle into dist/
-RUN npm run build
+# Build frontend only if dist/index.html is not already present
+RUN if [ ! -f "dist/index.html" ]; then npm run build; fi
 
 # Expose standard port
 ENV NODE_ENV=production
