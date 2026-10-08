@@ -362,6 +362,9 @@ app.post('/api/loop/start', async (req: Request, res: Response) => {
       maxItems: Number(req.body.maxItems) || 0,
       delayMs: Number(req.body.delayMs) ?? 800,
       headless: req.body.headless !== false,
+      enablePagination: Boolean(req.body.enablePagination),
+      startPage: req.body.startPage ? Number(req.body.startPage) : undefined,
+      endPage: req.body.endPage ? Number(req.body.endPage) : undefined,
     };
 
     if (!config.catalogUrl) {
@@ -410,7 +413,7 @@ app.get('/api/loop/export/:format', (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Content-Disposition', 'attachment; filename="crawlix-download-links.txt"');
     const textOutput = links
-      .filter((l) => Boolean(l.downloadLink))
+      .filter((l) => Boolean(l.downloadLink) && l.status === 'success' && !l.downloadLink.includes('#') && !l.downloadLink.includes('nexdrive.fit'))
       .map((l) => l.downloadLink)
       .join('\n');
     return res.send(textOutput);

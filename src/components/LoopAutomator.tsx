@@ -59,8 +59,27 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination states for dynamic range (e.g. page 2 -> 10)
+  const [enablePagination, setEnablePagination] = useState(false);
+  const [startPage, setStartPage] = useState(1);
+  const [endPage, setEndPage] = useState(5);
+
   const isRunning = progress.status === 'running';
   const isPaused = progress.status === 'paused';
+
+  const handleUrlChange = (newUrl: string) => {
+    setCatalogUrl(newUrl);
+    // Auto-detect page number if present in URL (e.g. /page/2/ or ?page=2)
+    const pageMatch = newUrl.match(/\/page\/(\d+)\/?/i) || newUrl.match(/[?&]page=(\d+)/i);
+    if (pageMatch) {
+      const detected = parseInt(pageMatch[1], 10);
+      if (!isNaN(detected) && detected > 0) {
+        setStartPage(detected);
+        setEndPage((prev) => Math.max(prev, detected + 3));
+        setEnablePagination(true);
+      }
+    }
+  };
 
   const filteredLinks = extractedLinks.filter((item) => {
     if (!searchTerm.trim()) return true;
@@ -88,6 +107,9 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
       serverPriority: servers.length > 0 ? servers : ['FSLv2', 'FastServer'],
       maxItems: Number(maxItems) || 0,
       headless,
+      enablePagination,
+      startPage: enablePagination ? Number(startPage) || 1 : undefined,
+      endPage: enablePagination ? Number(endPage) || 1 : undefined,
     });
   };
 
@@ -98,7 +120,10 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
   };
 
   const handleCopyAll = () => {
-    const urls = extractedLinks.filter((l) => Boolean(l.downloadLink)).map((l) => l.downloadLink).join('\n');
+    const urls = extractedLinks
+      .filter((l) => Boolean(l.downloadLink) && l.status === 'success' && !l.downloadLink.includes('#') && !l.downloadLink.includes('nexdrive.fit'))
+      .map((l) => l.downloadLink)
+      .join('\n');
     navigator.clipboard.writeText(urls);
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
@@ -243,39 +268,47 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
           </div>
         </div>
 
-        {/* Quick Presets Bar */}
+        {/* Quick Presets Bar - Single Unified Engine */}
         <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.9rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>
-            QUICK PRESETS:
+            QUICK PRESET:
           </span>
           <button
             type="button"
-            id="preset-vegamovies"
+            id="preset-vegamovies-universal"
             onClick={() => {
               setCatalogUrl('https://vegamovies.gallery/');
               setCardSelector('a[href*="/download-"]');
               setQualityOrder('1080p, 720p, 480p');
               setServerPriority('FSLv2, FastServer, PixelServer');
-              setMaxItems(5);
+              setMaxItems(0);
             }}
             style={{
-              background: 'rgba(255, 69, 0, 0.12)',
-              border: '1px solid rgba(255, 69, 0, 0.4)',
-              color: 'var(--brave-orange)',
+              background: 'linear-gradient(135deg, rgba(255, 85, 0, 0.22), rgba(0, 240, 255, 0.2))',
+              border: '1px solid rgba(255, 85, 0, 0.65)',
+              color: '#fff',
               borderRadius: '20px',
-              padding: '0.3rem 0.85rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
+              padding: '0.4rem 1.05rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.5rem',
+              boxShadow: '0 2px 12px rgba(255, 85, 0, 0.22)',
               transition: 'all 0.2s ease',
             }}
           >
-            <Film size={13} />
-            Vegamovies.gallery Catalog (1080p ➔ FSLv2 Server)
+            <Sparkles size={14} color="var(--brave-orange)" />
+            ⚡ Vegamovies Universal (Movies & Web Series ➔ FSLv2)
           </button>
+        </div>
+
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.55rem', background: 'rgba(0, 240, 255, 0.05)', padding: '0.55rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0, 240, 255, 0.15)' }}>
+          <Sparkles size={15} color="var(--cyan-accent)" style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Unified Movie & Series Engine:</strong> Crawlix seamlessly handles both standalone movies (extracts direct 1080p link) and multi-episode web series (extracts all 8–12 episodes) in a single run. No need to switch presets when a page has both!
+          </span>
         </div>
 
         <form onSubmit={handleLaunch}>
@@ -289,8 +322,8 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
                 id="input-loop-catalog-url"
                 value={catalogUrl}
                 disabled={isRunning || isPaused}
-                onChange={(e) => setCatalogUrl(e.target.value)}
-                placeholder="Enter catalog URL (e.g. https://moviesite.example/movies)..."
+                onChange={(e) => handleUrlChange(e.target.value)}
+                placeholder="Enter catalog URL (e.g. https://vegamovies.gallery/page/2/)..."
                 required
               />
             </div>
@@ -354,6 +387,132 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Multi-Page Range (Pagination Loop) Control */}
+          <div
+            style={{
+              marginTop: '1.25rem',
+              marginBottom: '1.25rem',
+              padding: '1rem 1.25rem',
+              background: enablePagination
+                ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.08), rgba(255, 85, 0, 0.06))'
+                : 'var(--bg-surface-elevated)',
+              border: enablePagination
+                ? '1px solid rgba(0, 240, 255, 0.4)'
+                : '1px solid var(--bg-surface-border)',
+              borderRadius: 'var(--radius-md)',
+              transition: 'all 0.25s ease',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  id="toggle-multi-page-crawl"
+                  checked={enablePagination}
+                  disabled={isRunning}
+                  onChange={(e) => setEnablePagination(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--brave-orange)', cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Layers size={16} color={enablePagination ? 'var(--cyan-accent)' : 'var(--text-muted)'} />
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: enablePagination ? '#fff' : 'var(--text-secondary)' }}>
+                    Multi-Page Range Crawl (e.g. Page 2 ➔ 10)
+                  </span>
+                </div>
+              </label>
+
+              {enablePagination && (
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--cyan-accent)',
+                    background: 'rgba(0, 240, 255, 0.12)',
+                    border: '1px solid rgba(0, 240, 255, 0.25)',
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {startPage === endPage ? `Page ${startPage} Only` : `Pages ${startPage} ➔ ${endPage} (${endPage - startPage + 1} catalog pages)`}
+                </span>
+              )}
+            </div>
+
+            {enablePagination && (
+              <div style={{ marginTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                  <div className="setting-item" style={{ marginBottom: 0 }}>
+                    <label>
+                      <span>From Page (Start)</span>
+                      <span className="val" style={{ color: 'var(--cyan-accent)' }}>Page #{startPage}</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="999"
+                      className="setting-input"
+                      id="input-start-page"
+                      value={startPage}
+                      disabled={isRunning}
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                        setStartPage(val);
+                        if (val > endPage) setEndPage(val);
+                      }}
+                      placeholder="e.g. 2"
+                    />
+                  </div>
+
+                  <div className="setting-item" style={{ marginBottom: 0 }}>
+                    <label>
+                      <span>To Page (End)</span>
+                      <span className="val" style={{ color: 'var(--brave-orange)' }}>Page #{endPage}</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={startPage}
+                      max="999"
+                      className="setting-input"
+                      id="input-end-page"
+                      value={endPage}
+                      disabled={isRunning}
+                      onChange={(e) => {
+                        const val = Math.max(startPage, parseInt(e.target.value, 10) || startPage);
+                        setEndPage(val);
+                      }}
+                      placeholder="e.g. 10"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontFamily: 'var(--font-mono)',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                  }}
+                >
+                  <div style={{ color: 'var(--text-muted)' }}>
+                    Loop sequence:{' '}
+                    <span style={{ color: 'var(--cyan-accent)' }}>
+                      {catalogUrl.includes('{page}')
+                        ? catalogUrl.replace(/\{page\}/gi, `[${startPage} ➔ ${endPage}]`)
+                        : /\/page\/\d+\/?/i.test(catalogUrl)
+                        ? catalogUrl.replace(/\/page\/\d+\/?/i, `/page/[${startPage} ➔ ${endPage}]/`)
+                        : `${catalogUrl.replace(/\/+$/, '')}/page/[${startPage} ➔ ${endPage}]/`}
+                    </span>
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontFamily: 'var(--font-body)', fontSize: '0.75rem' }}>
+                    Crawls all movie & series cards on page {startPage}, then advances to page {startPage + 1}, repeating until page {endPage}.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Configuration Grid */}
@@ -452,7 +611,22 @@ export const LoopAutomator: React.FC<LoopAutomatorProps> = ({
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', flexWrap: 'wrap' }}>
+              {Boolean(progress.totalCatalogPages && progress.totalCatalogPages > 1) && (
+                <span
+                  style={{
+                    background: 'rgba(0, 240, 255, 0.15)',
+                    border: '1px solid rgba(0, 240, 255, 0.4)',
+                    color: 'var(--cyan-accent)',
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  Catalog Page {progress.currentPage || 1} / {progress.totalCatalogPages}
+                </span>
+              )}
               <span style={{ color: 'var(--text-muted)' }}>
                 Item {progress.currentIndex} of {progress.totalItems} ({percentage}%)
               </span>

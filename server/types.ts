@@ -146,6 +146,9 @@ export interface LoopCrawlConfig {
   maxItems?: number; // 0 or undefined for all cards
   delayMs?: number; // delay between card visits
   headless: boolean;
+  enablePagination?: boolean;
+  startPage?: number;
+  endPage?: number;
 }
 
 export interface ExtractedDownloadLink {
@@ -163,6 +166,8 @@ export interface ExtractedDownloadLink {
 
 export interface LoopCrawlProgress {
   status: 'idle' | 'running' | 'paused' | 'completed' | 'stopped' | 'error';
+  currentPage?: number;
+  totalCatalogPages?: number;
   currentIndex: number;
   totalItems: number;
   currentMovieTitle: string;
